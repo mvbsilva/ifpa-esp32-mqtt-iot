@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IFPA | IoT Control Center</title>
+<link rel="stylesheet" href="style.css">
+<script defer src="https://unpkg.com/mqtt@5.10.4/dist/mqtt.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+<script defer src="script.js"></script>
+</head>
+<body><main class="container">
+<header><h1>IoT Control Center</h1><p>IFPA — Campus Bragança</p></header>
+<section class="cards">
+ <article class="card"><h2>Temperatura</h2><p class="valor" id="temperatura">-- °C</p></article>
+ <article class="card"><h2>Umidade</h2><p class="valor" id="umidade">-- %</p></article>
+ <article class="card"><h2>LED 1</h2><p id="estado1">?</p><div class="botoes">
+ <button data-led="1" data-comando="ON">Ligar</button><button data-led="1" data-comando="OFF">Desligar</button></div></article>
+ <article class="card"><h2>LED 2</h2><p id="estado2">?</p><div class="botoes">
+ <button data-led="2" data-comando="ON">Ligar</button><button data-led="2" data-comando="OFF">Desligar</button></div></article>
+</section>
+<section class="cards">
+ <article class="card"><h2>Temperatura</h2><div class="grafico"><canvas id="graficoT"></canvas></div></article>
+ <article class="card"><h2>Umidade</h2><div class="grafico"><canvas id="graficoU"></canvas></div></article>
+</section>
+<section class="card"><h2>Automação</h2>
+ <label for="modo">Modo</label><select id="modo"><option value="MANUAL">Manual</option><option value="AUTO">Automático</option></select>
+ <label for="limite">Limite (°C)</label><input id="limite" type="number" min="15" max="45" step="0.5" value="30">
+ <button id="salvar">Salvar limite</button>
+ <p>Modo confirmado: <strong id="modoAtual">?</strong> | Limite: <strong id="limiteAtual">?</strong></p>
+ <p>Alerta: <strong id="alerta">?</strong></p>
+</section>
+<section class="card"><h2>Conectividade</h2><p>Broker: <strong id="broker">Offline</strong></p>
+ <p>ESP32: <strong id="dispositivo">Desconhecido</strong></p>
+ <p>Telemetria: <strong id="frescor">Sem dados</strong></p>
+ <p>Leituras: <strong id="contador">0</strong></p><button id="limpar">Limpar gráficos</button></section>
+<section class="card"><h2>Eventos</h2><ul id="eventos"></ul></section>
+</main></body></html>

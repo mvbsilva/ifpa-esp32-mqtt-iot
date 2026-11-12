@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>IFPA | Painel IoT</title>
+  <link rel="stylesheet" href="style.css">
+  <script defer src="https://unpkg.com/mqtt@5.10.4/dist/mqtt.min.js"></script>
+  <script defer src="script.js"></script>
+</head>
+<body>
+  <main class="container">
+    <h1>Painel IoT — IFPA Bragança</h1>
+    <p id="conexao">Conectando...</p>
+    <section class="cards">
+      <article class="card"><h2>LED 1</h2><p id="estado1">?</p>
+        <div class="botoes"><button onclick="controlar(1,'ON')">Ligar</button>
+        <button onclick="controlar(1,'OFF')">Desligar</button></div></article>
+      <article class="card"><h2>LED 2</h2><p id="estado2">?</p>
+        <div class="botoes"><button onclick="controlar(2,'ON')">Ligar</button>
+        <button onclick="controlar(2,'OFF')">Desligar</button></div></article>
+    </section>
+    <h2>Mensagens</h2><ul id="mensagens"></ul>
+  </main>
+</body>
+</html>

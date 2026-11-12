@@ -1,0 +1,11 @@
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#eef3f7;color:#142a40}
+.container{max-width:1180px;margin:auto;padding:24px}header{padding:22px 0}header h1{margin:0}
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin:18px 0}
+.card{background:white;border:1px solid #dbe4ee;border-radius:16px;padding:22px;margin:18px 0;box-shadow:0 3px 12px #0000000b}
+.cards .card{margin:0}.card h2{margin-top:0;font-size:19px}.valor{font-size:36px;font-weight:bold;color:#145b7d}
+.grafico{height:250px;position:relative}.botoes{display:flex;gap:10px;flex-wrap:wrap}
+button{padding:11px 16px;background:#176b4c;color:white;border:0;border-radius:8px;cursor:pointer;margin:4px}
+button:disabled,select:disabled,input:disabled{opacity:.5;cursor:not-allowed}
+label{display:inline-block;margin:12px 6px 8px 0}select,input{padding:10px;border:1px solid #bac7d5;border-radius:7px}
+#eventos{padding-left:22px}#eventos li{padding:6px 0;overflow-wrap:anywhere}
+@media(max-width:750px){.cards{grid-template-columns:1fr}.container{padding:12px}.grafico{height:220px}}
