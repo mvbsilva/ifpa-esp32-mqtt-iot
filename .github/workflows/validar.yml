@@ -1,0 +1,24 @@
+name: Validar estrutura e JavaScript
+on:
+  push:
+  pull_request:
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verificar scripts JavaScript
+        run: |
+          find aulas projeto-final -type f -name '*.js' ! -name 'config.example.js' -print0 | xargs -0 -r -n1 node --check
+          node --check projeto-final/web/config.example.js
+      - name: Verificar arquivos obrigatorios
+        run: |
+          test -f README.md
+          test -f projeto-final/firmware/esp32_automacao/esp32_automacao.ino
+          test -f projeto-final/web/index.html
+          test -f materiais/apostilas/aluno/apostila-aluno.pdf
+          test -f materiais/apostilas/professor/manual-professor.pdf
+          for n in 01 02 03 04 05 06; do test -f "assets/diagramas/diagrama-aula-$n.png"; done

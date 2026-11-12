@@ -1,0 +1,19 @@
+# Credenciais e configuracoes locais
+**/secrets.h
+**/config.js
+.env
+.env.*
+!.env.example
+# Sistemas e editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+# Artefatos temporarios
+__pycache__/
+*.pyc
+node_modules/
+dist/
+build/
+*.log
+*.tmp

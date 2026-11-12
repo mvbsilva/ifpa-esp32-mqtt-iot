@@ -1,0 +1,48 @@
+name: Publicar Dashboard no GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'projeto-final/web/**'
+      - '.github/workflows/publicar-dashboard.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  publicar:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Obter repositório
+        uses: actions/checkout@v4
+      - name: Verificar arquivos e JavaScript
+        run: |
+          test -f projeto-final/web/index.html
+          test -f projeto-final/web/manifest.webmanifest
+          node --check projeto-final/web/app.js
+          node --check projeto-final/web/sw.js
+      - name: Configurar Pages
+        uses: actions/configure-pages@v5
+      - name: Preparar conteúdo estático
+        run: |
+          mkdir -p _site
+          cp -a projeto-final/web/. _site/
+          touch _site/.nojekyll
+      - name: Enviar artefato do site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - name: Publicar
+        id: deployment
+        uses: actions/deploy-pages@v4
