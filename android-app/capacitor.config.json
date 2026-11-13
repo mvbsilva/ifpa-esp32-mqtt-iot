@@ -1,0 +1,12 @@
+{
+  "appId": "br.edu.ifpa.esp32control",
+  "appName": "ESP32 Control IFPA",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https",
+    "allowNavigation": []
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}
