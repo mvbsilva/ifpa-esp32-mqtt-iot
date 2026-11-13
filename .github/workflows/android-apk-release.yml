@@ -1,4 +1,4 @@
-name: Gerar APK Android e publicar Release
+name: Android APK Release assinado
 on:
   workflow_dispatch:
   push:
@@ -7,7 +7,7 @@ on:
 permissions:
   contents: write
 jobs:
-  apk:
+  android-release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,59 +18,76 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      # GitHub-hosted Ubuntu runners já incluem Android SDK.
-      # Não usar android-actions/setup-android@v3: algumas versões tentam
-      # instalar o pacote legado "tools", removido do repositório SDK.
-      - name: Verificar Android SDK instalado
+      - name: Validar secrets de assinatura
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for name in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then echo "Secret ausente: $name"; exit 1; fi
+          done
+          mkdir -p "$RUNNER_TEMP/ifpa-signing"
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/ifpa-signing/release.jks"
+          test -s "$RUNNER_TEMP/ifpa-signing/release.jks"
+          echo "IFPA_KEYSTORE_PATH=$RUNNER_TEMP/ifpa-signing/release.jks" >> "$GITHUB_ENV"
+      - name: Instalar componentes Android SDK
         shell: bash
         run: |
           set -euo pipefail
-          echo "ANDROID_HOME=${ANDROID_HOME:-não definido}"
-          echo "ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT:-não definido}"
           SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
-          test -d "$SDK" || { echo "Android SDK não encontrado: $SDK"; exit 1; }
+          test -d "$SDK"
           echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
-          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
-          echo "SDK disponível em: $SDK"
-          ls -d "$SDK"/cmdline-tools/*/bin/sdkmanager || true
-      - name: Instalar plataforma e build-tools Android
+          SDKMANAGER=$(find "$SDK/cmdline-tools" -path '*/bin/sdkmanager' -type f | sort -V | tail -1)
+          test -n "$SDKMANAGER"
+          yes | "$SDKMANAGER" --sdk_root="$SDK" --licenses >/dev/null || true
+          "$SDKMANAGER" --sdk_root="$SDK" --install 'platforms;android-35' 'build-tools;35.0.0' 'platform-tools'
+      - name: Instalar dependências e preparar interface offline
+        working-directory: android-app
+        run: |
+          npm install --no-audit --no-fund
+          npm run prepare:web
+          npx cap add android
+          node scripts/configure-android.mjs
+      - name: Configurar assinatura de produção
+        working-directory: android-app
+        run: node scripts/configure-release-signing.mjs
+      - name: Compilar APK release assinado
+        working-directory: android-app/android
+        env:
+          IFPA_KEYSTORE_PATH: ${{ env.IFPA_KEYSTORE_PATH }}
+          IFPA_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          IFPA_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          IFPA_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+      - name: Verificar assinatura e gerar SHA-256
         shell: bash
         run: |
           set -euo pipefail
-          SDK="$ANDROID_HOME"
-          SDKMANAGER=$(find "$SDK/cmdline-tools" -path '*/bin/sdkmanager' -type f | sort -V | tail -1)
-          test -n "$SDKMANAGER" || { echo "sdkmanager não encontrado"; exit 1; }
-          yes | "$SDKMANAGER" --sdk_root="$SDK" --licenses >/dev/null || true
-          "$SDKMANAGER" --sdk_root="$SDK" --install "platforms;android-35" "build-tools;35.0.0" "platform-tools"
-      - name: Instalar dependências
-        working-directory: android-app
-        run: npm install --no-audit --no-fund
-      - name: Preparar Dashboard e MQTT.js offline
-        working-directory: android-app
-        run: npm run prepare:web
-      - name: Gerar projeto Android
-        working-directory: android-app
-        run: npx cap add android
-      - name: Habilitar conexões WS/HTTP na LAN
-        working-directory: android-app
-        run: node scripts/configure-android.mjs
-      - name: Compilar APK de teste assinado com chave debug
-        working-directory: android-app/android
-        run: chmod +x gradlew && ./gradlew assembleDebug --no-daemon
-      - name: Preparar APK
-        run: cp android-app/android/app/build/outputs/apk/debug/app-debug.apk ESP32-Control-IFPA-debug.apk
+          APK=android-app/android/app/build/outputs/apk/release/app-release.apk
+          test -s "$APK"
+          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          APKSIGNER="$SDK/build-tools/35.0.0/apksigner"
+          "$APKSIGNER" verify --verbose --print-certs "$APK"
+          cp "$APK" ESP32-Control-IFPA-release.apk
+          sha256sum ESP32-Control-IFPA-release.apk > ESP32-Control-IFPA-release.apk.sha256
+          cat ESP32-Control-IFPA-release.apk.sha256
       - name: Disponibilizar APK no Actions
         uses: actions/upload-artifact@v4
         with:
-          name: ESP32-Control-IFPA-Android
-          path: ESP32-Control-IFPA-debug.apk
-      - name: Publicar APK no GitHub Releases (somente tags)
+          name: ESP32-Control-IFPA-Release
+          path: |
+            ESP32-Control-IFPA-release.apk
+            ESP32-Control-IFPA-release.apk.sha256
+      - name: Publicar GitHub Release quando houver tag
         if: startsWith(github.ref, 'refs/tags/android-v')
         uses: softprops/action-gh-release@v2
         with:
-          files: ESP32-Control-IFPA-debug.apk
+          files: |
+            ESP32-Control-IFPA-release.apk
+            ESP32-Control-IFPA-release.apk.sha256
           generate_release_notes: true
-          body: |
-            APK de laboratório assinado com chave DEBUG do GitHub Actions.
-            Pode ser instalado manualmente; para distribuição duradoura,
-            configure assinatura de release com keystore persistente.
