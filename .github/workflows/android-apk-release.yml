@@ -18,7 +18,30 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      - uses: android-actions/setup-android@v3
+      # GitHub-hosted Ubuntu runners já incluem Android SDK.
+      # Não usar android-actions/setup-android@v3: algumas versões tentam
+      # instalar o pacote legado "tools", removido do repositório SDK.
+      - name: Verificar Android SDK instalado
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "ANDROID_HOME=${ANDROID_HOME:-não definido}"
+          echo "ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT:-não definido}"
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          test -d "$SDK" || { echo "Android SDK não encontrado: $SDK"; exit 1; }
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          echo "SDK disponível em: $SDK"
+          ls -d "$SDK"/cmdline-tools/*/bin/sdkmanager || true
+      - name: Instalar plataforma e build-tools Android
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK="$ANDROID_HOME"
+          SDKMANAGER=$(find "$SDK/cmdline-tools" -path '*/bin/sdkmanager' -type f | sort -V | tail -1)
+          test -n "$SDKMANAGER" || { echo "sdkmanager não encontrado"; exit 1; }
+          yes | "$SDKMANAGER" --sdk_root="$SDK" --licenses >/dev/null || true
+          "$SDKMANAGER" --sdk_root="$SDK" --install "platforms;android-35" "build-tools;35.0.0" "platform-tools"
       - name: Instalar dependências
         working-directory: android-app
         run: npm install --no-audit --no-fund
